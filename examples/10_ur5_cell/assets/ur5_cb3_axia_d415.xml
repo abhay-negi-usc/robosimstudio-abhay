@@ -1,0 +1,109 @@
+<!--
+  A CB3 UR5 with the cell's tool stack as built, for the 10_ur5_cell example.
+
+  The chain is the CB3 UR5's published DH (d1 0.089159, a2 -0.425, a3 -0.39225,
+  d4 0.10915, d5 0.09465, d6 0.0823), laid out so that the frame of the body
+  `base_link` to the frame of the body `wrist_3_link` is exactly UR's `base` -> `tool0`; the frames the
+  pendant and RTDE report. Checked against the DH forward kinematics over random
+  postures to 0.0 mm and 0.0 rad, so a joint vector read off the real arm poses
+  this model's flange where the real flange is.
+
+  Link masses are Universal Robots' published ones (ur_description); the centres
+  of mass and inertias are cylinder estimates. Every link carries gravcomp="1":
+  the real controller compensates gravity, and a position servo here would
+  otherwise sag the 1.66 kg tool by about a degree at the shoulder.
+
+  The tool stack (UR5 flange -> printed coupler -> ATI Axia80-M8 -> flange mount
+  -> D415 bracket -> Robotiq mount) is primitives sized from the as-built CAD's
+  bounds in the flange frame, not the CAD itself (9 MB, and only its envelope
+  matters here). The 2F-85 is not in this file: the example bolts the registered
+  `robotiq_2f85_menagerie` hand on 81.55 mm along the flange, turned a half turn.
+
+  Meshes: ros-industrial/universal_robot ur_description, BSD (assets/ur5/LICENSE).
+-->
+<mujoco model="ur5_cb3_axia_d415">
+  <compiler angle="radian"/>
+
+  <default>
+    <default class="ur5">
+      <joint armature="0.1" damping="2" limited="true" range="-6.28319 6.28319"/>
+      <geom type="mesh" contype="1" conaffinity="1" rgba="0.75 0.77 0.8 1"/>
+      <default class="ur5_wrist">
+        <geom rgba="0.3 0.45 0.65 1"/>
+      </default>
+      <default class="tool">
+        <geom type="cylinder" rgba="0.62 0.64 0.68 1"/>
+      </default>
+    </default>
+  </default>
+
+  <asset>
+    <mesh name="ur5_base" file="ur5/base.stl"/>
+    <mesh name="ur5_shoulder" file="ur5/shoulder.stl"/>
+    <mesh name="ur5_upperarm" file="ur5/upperarm.stl"/>
+    <mesh name="ur5_forearm" file="ur5/forearm.stl"/>
+    <mesh name="ur5_wrist1" file="ur5/wrist1.stl"/>
+    <mesh name="ur5_wrist2" file="ur5/wrist2.stl"/>
+    <mesh name="ur5_wrist3" file="ur5/wrist3.stl"/>
+  </asset>
+
+  <worldbody>
+    <body name="base_link" childclass="ur5">
+      <inertial pos="0 0 0.03" mass="4.0" diaginertia="0.0061 0.0061 0.0056"/>
+      <geom name="ur5_base" quat="0 0 0 1" mesh="ur5_base"/>
+      <body name="shoulder_link" pos="0 0 0.089159" gravcomp="1">
+        <inertial pos="0 0 0" mass="3.7" diaginertia="0.0103 0.0103 0.0067"/>
+        <joint name="shoulder_pan"/>
+        <geom name="ur5_shoulder" quat="0 0 0 1" mesh="ur5_shoulder"/>
+        <body name="upper_arm_link" quat="0.707107 0.707107 0 0" gravcomp="1">
+          <inertial pos="-0.2125 0 0.136" mass="8.393" diaginertia="0.0151 0.134 0.134"/>
+          <joint name="shoulder_lift"/>
+          <geom name="ur5_upperarm" pos="0 0 0.13585" quat="0.5 0.5 -0.5 -0.5" mesh="ur5_upperarm"/>
+          <body name="forearm_link" pos="-0.425 0 0" gravcomp="1">
+            <inertial pos="-0.196 0 0.0165" mass="2.275" diaginertia="0.0028 0.0306 0.0306"/>
+            <joint name="elbow" range="-3.14159 3.14159"/>
+            <geom name="ur5_forearm" pos="0 0 0.0165" quat="0.5 0.5 -0.5 -0.5" mesh="ur5_forearm"/>
+            <body name="wrist_1_link" pos="-0.39225 0 0.10915" gravcomp="1">
+              <inertial pos="0 0 0" mass="1.219" diaginertia="0.0026 0.0026 0.0022"/>
+              <joint name="wrist_1"/>
+              <geom name="ur5_wrist1" class="ur5_wrist" pos="0 0 -0.093" quat="0.707107 0.707107 0 0" mesh="ur5_wrist1"/>
+              <body name="wrist_2_link" pos="0 -0.09465 0" quat="0.707107 0.707107 0 0" gravcomp="1">
+                <inertial pos="0 0 0" mass="1.219" diaginertia="0.0026 0.0026 0.0022"/>
+                <joint name="wrist_2"/>
+                <geom name="ur5_wrist2" class="ur5_wrist" pos="0 0 -0.095" mesh="ur5_wrist2"/>
+                <!-- This body's frame is UR's tool0, the flange: z out of the flange face. -->
+                <body name="wrist_3_link" pos="0 0.0823 0" quat="0.707107 -0.707107 0 0" gravcomp="1">
+                  <!-- The wrist link (0.1879 kg) and the tool stack as weighed and placed from the CAD
+                       (0.762 kg at (4.3, -8.2, 53.9) mm), as one inertial. -->
+                  <inertial pos="0.0034 -0.0065 0.0430" mass="0.950" diaginertia="0.0012 0.0012 0.0009"/>
+                  <joint name="wrist_3"/>
+                  <geom name="ur5_wrist3" class="ur5_wrist" pos="0 0 -0.0818" quat="0.707107 0.707107 0 0" mesh="ur5_wrist3"/>
+                  <geom name="ts_mount" class="tool" size="0.039 0.014" pos="0 0 0.014" rgba="0.85 0.85 0.82 1"/>
+                  <geom name="axia80" class="tool" size="0.041 0.0127" pos="0 0 0.0407"/>
+                  <geom name="axia_flangemount" class="tool" size="0.041 0.0095" pos="0 0 0.0629" rgba="0.2 0.2 0.22 1"/>
+                  <geom name="realsense_flangemount" class="tool" type="box" size="0.06075 0.04985 0.00925"
+                        pos="0.02325 -0.01235 0.07905" rgba="0.2 0.2 0.22 1"/>
+                  <geom name="robotiq_mount" class="tool" size="0.0375 0.00695" pos="0 0 0.08435" rgba="0.2 0.2 0.22 1"/>
+                  <!-- The D415's body. Its RGB sensor is the wrist camera, placed by the hand-eye
+                       calibration in the example rather than here. -->
+                  <geom name="d415" class="tool" type="box" size="0.0497 0.0134 0.01205"
+                        pos="0.035 -0.0717 0.08295" rgba="0.12 0.12 0.13 1"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- Plain position servos: the joint targets are what the scene drives. -->
+  <actuator>
+    <position name="act_shoulder_pan" joint="shoulder_pan" kp="2000" kv="400" ctrlrange="-6.28319 6.28319"/>
+    <position name="act_shoulder_lift" joint="shoulder_lift" kp="2000" kv="400" ctrlrange="-6.28319 6.28319"/>
+    <position name="act_elbow" joint="elbow" kp="2000" kv="400" ctrlrange="-3.14159 3.14159"/>
+    <position name="act_wrist_1" joint="wrist_1" kp="500" kv="100" ctrlrange="-6.28319 6.28319"/>
+    <position name="act_wrist_2" joint="wrist_2" kp="500" kv="100" ctrlrange="-6.28319 6.28319"/>
+    <position name="act_wrist_3" joint="wrist_3" kp="500" kv="100" ctrlrange="-6.28319 6.28319"/>
+  </actuator>
+</mujoco>

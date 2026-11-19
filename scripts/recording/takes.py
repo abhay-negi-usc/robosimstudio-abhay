@@ -567,6 +567,7 @@ FINAL = (
     policy("examples/07_policies/00_pick_and_place.py"),
     policy("examples/07_policies/01_check_and_retry.py"),
     policy("examples/07_policies/02_without_privilege.py"),
+    policy("examples/10_ur5_cell/00_sim_pick_place.py"),
 )
 
 

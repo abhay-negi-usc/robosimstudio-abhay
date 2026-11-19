@@ -96,6 +96,14 @@
 |---|---|
 | <img src="09_teleop/media/00_leader_arm.webp" width="240"> | <img src="09_teleop/media/01_force_feedback.webp" width="240"> |
 
+## [10 A Real UR5 Cell](10_ur5_cell/README.md)
+
+| [Pick and place, in the twin](10_ur5_cell/00_sim_pick_place.py) |
+|---|
+| <img src="10_ur5_cell/media/00_sim_pick_place.webp" width="240"> |
+
+The same graph on the real arm: [`run_real.py`](10_ur5_cell/run_real.py).
+
 ## [Live Scene Editing](live/README.md)
 
 | [The live page](live/README.md) |

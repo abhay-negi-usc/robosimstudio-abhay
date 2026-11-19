@@ -1,0 +1,71 @@
+{
+  "version": 3,
+  "meta": {
+    "name": "pick_cube",
+    "description": "Find the black cube with the wrist D415 from the look pose, pick it, check the jaws stopped on it, set it down on the place spot. No sim.* tool: it runs unchanged on the real arm.",
+    "observation_mode": "on_demand"
+  },
+  "nodes": {
+    "pick": {"type": "subgraph", "ref": "pick_sg"},
+    "pick_again": {"type": "subgraph", "ref": "pick_sg"},
+    "place": {"type": "subgraph", "ref": "place_sg"},
+    "done": {"type": "end", "status": "success"},
+    "abort": {"type": "end", "status": "failure"}
+  },
+  "edges": [["START", "pick"]],
+  "conditional_edges": {
+    "pick": {"router_field": "exit", "mapping": {"held": "place", "missed": "pick_again"}},
+    "pick_again": {"router_field": "exit", "mapping": {"held": "place", "missed": "abort"}},
+    "place": {"router_field": "exit", "mapping": {"placed": "done", "failed": "abort"}}
+  },
+  "subgraphs": {
+    "pick_sg": {
+      "skill": "generic",
+      "inputs": {},
+      "outputs": {},
+      "nodes": {
+        "look": {"type": "tool", "tool": "robot.go_home", "inputs": {}},
+        "open": {"type": "tool", "tool": "robot.set_grip", "inputs": {"preset": "open", "settle_steps": 20}},
+        "observe": {"type": "tool", "tool": "robot.get_observation", "inputs": {}},
+        "locate": {"type": "script", "script": "scripts/locate.py", "inputs": {"cameras": {"$ref": "observe.cameras"}}},
+        "plan": {"type": "script", "script": "scripts/plan_pick.py", "inputs": {"cube": {"$ref": "locate.cube"}}},
+        "above": {"type": "tool", "tool": "robot.go_to_pose", "inputs": {"pose": {"$ref": "plan.above"}}},
+        "down": {"type": "tool", "tool": "robot.go_to_pose", "inputs": {"pose": {"$ref": "plan.grasp"}}},
+        "close": {"type": "tool", "tool": "robot.close_gripper", "inputs": {"settle_steps": 150}},
+        "lift": {"type": "tool", "tool": "robot.go_to_pose", "inputs": {"pose": {"$ref": "plan.above"}}},
+        "check": {"type": "script", "script": "scripts/check_grip.py", "inputs": {}},
+        "held": {"type": "noop"}
+      },
+      "edges": [
+        ["START", "look"], ["look", "open"], ["open", "observe"], ["observe", "locate"], ["locate", "plan"],
+        ["plan", "above"], ["above", "down"], ["down", "close"],
+        ["close", "lift"], ["lift", "check"], ["check", "held"], ["held", "END"]
+      ],
+      "conditional_edges": {},
+      "exit": {"router_field": null, "success_values": ["held"]},
+      "on_error": "missed"
+    },
+    "place_sg": {
+      "skill": "generic",
+      "inputs": {},
+      "outputs": {},
+      "nodes": {
+        "hand": {"type": "tool", "tool": "robot.get_ee_pose", "inputs": {}},
+        "plan": {"type": "script", "script": "scripts/plan_place.py", "inputs": {"hand": {"$ref": "hand.pose"}}},
+        "over": {"type": "tool", "tool": "robot.go_to_pose", "inputs": {"pose": {"$ref": "plan.over"}}},
+        "lower": {"type": "tool", "tool": "robot.go_to_pose", "inputs": {"pose": {"$ref": "plan.drop"}}},
+        "release": {"type": "tool", "tool": "robot.set_grip", "inputs": {"preset": "open", "settle_steps": 60}},
+        "away": {"type": "tool", "tool": "robot.go_to_pose", "inputs": {"pose": {"$ref": "plan.over"}}},
+        "home": {"type": "tool", "tool": "robot.go_home", "inputs": {}},
+        "placed": {"type": "noop"}
+      },
+      "edges": [
+        ["START", "hand"], ["hand", "plan"], ["plan", "over"], ["over", "lower"], ["lower", "release"],
+        ["release", "away"], ["away", "home"], ["home", "placed"], ["placed", "END"]
+      ],
+      "conditional_edges": {},
+      "exit": {"router_field": null, "success_values": ["placed"]},
+      "on_error": "failed"
+    }
+  }
+}
